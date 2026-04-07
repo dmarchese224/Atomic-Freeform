@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Atomic Freeform — a markdown-based freeform notes app">
+<meta name="theme-color" content="#01696f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Freeform">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="assets/atomic-journal-md.svg">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<title>Atomic Freeform</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@400,500,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="style.css">
+<style>
+  .freeform-container { flex: 1; display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .freeform-textarea { flex: 1; min-height: 50vh; padding: var(--space-4); border: none; font-size: var(--text-base); line-height: 1.6; resize: vertical; width: 100%; background: transparent; }
+  .note-title-input { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; width: 100%; color: var(--color-text); background: transparent; border: none; outline: none; padding: 0; }
+  .note-title-input::placeholder { color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+<div class="mobile-backdrop" id="mobileBackdrop"></div>
+<div id="app" class="app-shell">
+  <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Atomic Freeform" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="4" width="10" height="20" rx="1.5" fill="currentColor" opacity="0.18"/>
+          <rect x="15" y="4" width="10" height="20" rx="1.5" fill="currentColor" opacity="0.32"/>
+          <line x1="13" y1="5" x2="13" y2="23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="6" y1="9" x2="10" y2="9" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+          <line x1="6" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+          <line x1="6" y1="15" x2="9" y2="15" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+        <span class="logo-text">Atomic Freeform</span>
+      </div>
+      <button class="icon-btn" id="sidebarToggle" aria-label="Collapse sidebar"><i data-lucide="panel-left-close"></i></button>
+    </div>
+    <div class="sidebar-actions">
+      <button class="btn btn-primary btn-full" id="newEntryBtn"><i data-lucide="plus-circle"></i> <span>New Note</span></button>
+      <button class="btn btn-secondary btn-full" id="openFolderBtn"><i data-lucide="folder-open"></i> <span>Open Folder</span></button>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="editor"><i data-lucide="pen-tool"></i><span>Editor</span></button>
+      <button class="nav-item" data-view="browse"><i data-lucide="library"></i><span>Browse Notes</span></button>
+      <button class="nav-item" data-view="settings"><i data-lucide="settings"></i><span>Settings</span></button>
+    </nav>
+    <div class="sidebar-section-label">Tags</div>
+    <div class="tag-list" id="tagList"></div>
+    <div class="sidebar-footer">
+      <button class="nav-item" id="themeToggle" aria-label="Switch theme"><i data-lucide="moon"></i><span>Toggle Theme</span></button>
+    </div>
+  </aside>
+  <main id="main-content" class="main-content">
+    <header class="topbar">
+      <button class="icon-btn" id="mobileSidebarToggle" aria-label="Open sidebar"><i data-lucide="menu"></i></button>
+      <div class="topbar-search">
+        <i data-lucide="search" class="search-icon"></i>
+        <input type="search" id="quickSearch" placeholder="Search notes, tags..." aria-label="Search notes">
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="Reload folder"><i data-lucide="refresh-cw"></i></button>
+      </div>
+    </header>
+    <div class="view-container">
+      <section id="view-editor" class="view active">
+        <div class="journal-page">
+          <div id="noFolderMsg" class="empty-state">
+            <div class="empty-icon"><i data-lucide="folder-open"></i></div>
+            <h3>Open your notes folder</h3>
+            <p>Choose a folder where your markdown files will be saved and synced.</p>
+            <button class="btn btn-primary" id="emptyOpenFolderBtn"><i data-lucide="folder-open"></i> Open Notes Folder</button>
+          </div>
+          
+          <div id="entryForm" style="display:none;flex-direction:column;gap:var(--space-4)">
+            
+            <div class="entry-date-banner" style="border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-4);">
+              <input type="text" id="noteTitle" class="note-title-input" placeholder="Title your note...">
+              <div style="font-size:var(--text-xs);color:var(--color-text-faint);margin-top:8px">
+                <i data-lucide="file-text" style="width:12px;height:12px;vertical-align:middle;margin-right:4px"></i>
+                <span id="entryFilename">Untitled.md</span>
+              </div>
+            </div>
+
+            <div class="freeform-container">
+              <textarea id="freeformText" class="freeform-textarea" placeholder="Start writing..."></textarea>
+              <div class="tags-input-area" style="border-top:1px solid var(--color-divider); padding: var(--space-3) var(--space-4);">
+                <i data-lucide="tag" class="prompt-icon" style="margin-right: var(--space-2);"></i>
+                <div id="tagChips" style="display:flex; gap:var(--space-2); flex-wrap:wrap;"></div>
+                <input type="text" class="tags-text-input" id="tagInput" placeholder="Type a tag & press Enter..." autocomplete="off">
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <div class="save-status" id="saveStatus"><i data-lucide="circle-dashed"></i><span id="saveStatusText">Unsaved</span></div>
+              <div style="display:flex;gap:var(--space-3);align-items:center">
+                <span class="word-count-badge" id="wordCountBadge">0 words</span>
+                <button class="btn btn-secondary btn-sm" id="createNewNoteBtn"><i data-lucide="plus"></i> New Note</button>
+                <button class="btn btn-primary" id="saveEntryBtn"><i data-lucide="save"></i> Save Note</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <section id="view-browse" class="view"><div class="view-header"><div class="view-header-left"><h1 class="view-title">Browse Notes</h1><div class="view-subtitle" id="browseSubtitle">All notes</div></div><div class="view-controls"><button class="icon-btn active" id="clearTagFilter" title="Clear filter" style="display:none"><i data-lucide="x-circle"></i></button></div></div><div class="entries-grid" id="entriesList"><div class="empty-state"><div class="empty-icon"><i data-lucide="book-open"></i></div><h3>No notes yet</h3><p>Open your folder and start writing.</p></div></div></section>
+      <section id="view-settings" class="view"><div class="view-header"><h1 class="view-title">Settings</h1></div><div class="settings-body"><div class="settings-card"><h2 class="settings-section-title">Notes Folder</h2><p class="settings-desc">Select a local folder where your notes are stored. Files are saved as standard markdown. Sync this folder with iCloud, Dropbox, or any file sync service to access from other devices.</p><div class="folder-info" id="folderInfo"><i data-lucide="folder"></i><span id="folderPath">No folder selected</span></div><button class="btn btn-primary" id="settingsOpenBtn"><i data-lucide="folder-open"></i> Choose Notes Folder</button></div><div class="settings-card"><h2 class="settings-section-title">Appearance</h2><div class="toggle-row"><span class="toggle-label">Dark mode</span><label class="toggle"><input type="checkbox" id="darkModeToggle"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div></div><div class="settings-card"><h2 class="settings-section-title">Browser Compatibility</h2><p class="settings-desc">Uses the File System Access API. Best in Chrome, Edge, and Arc.</p><div id="fsapiStatus" style="font-size:var(--text-sm);color:var(--color-text-muted)"></div></div></div></section>
+    </div>
+  </main>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {})); }</script>
+</body>
+</html>
